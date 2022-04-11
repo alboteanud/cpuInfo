@@ -29,8 +29,10 @@ class HomeFragment : Fragment() {
     var oldCpuTime: CpuTime? = null
     val handler = Handler(Looper.getMainLooper())
     var timestamp = 0
-    val SCALE = 1
-    val TIME_GAP: Long = SCALE * 1000L
+    val stepValue = 1
+    private val secondMills = 1000
+    val TIME_GAP: Long = (stepValue * secondMills).toLong()
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,8 +52,14 @@ class HomeFragment : Fragment() {
         homeViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
         }
-        binding.graph.title = "CPU load"
-//        binding.graph.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.NONE
+
+        binding.graph.apply {
+            viewport.isYAxisBoundsManual = true
+            viewport.setMinY(0.0)
+            viewport.setMaxY(100.0)
+            title = "CPU load"
+        }
+
         return root
     }
 
@@ -81,13 +89,12 @@ class HomeFragment : Fragment() {
                 val deltaIdleTime = cpuTime.idleTime - oldCpuTime!!.idleTime
                 val deltaTotalTime = cpuTime.totalTime - oldCpuTime!!.totalTime
                 val cpuLoad = ((1.0 - deltaIdleTime.toDouble() / deltaTotalTime) * 100.0)
-                timestamp += SCALE
+                timestamp += stepValue
 
 //                update Graph UI
-                series.appendData(DataPoint(timestamp.toDouble(), cpuLoad), true, 15)
+                series.appendData(DataPoint(timestamp.toDouble(), cpuLoad), false, 20)
 //                binding.graph.removeAllSeries()
                 binding.graph.addSeries(series)
-//                binding.graph.ser
             }
 
             oldCpuTime = cpuTime

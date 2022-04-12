@@ -10,12 +10,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.alboteanu.cpuinfo_3.databinding.FragmentHomeBinding
-import com.jjoe64.graphview.GridLabelRenderer
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import java.io.BufferedReader
 import java.io.FileInputStream
-import java.io.InputStream
 import java.io.InputStreamReader
 
 class HomeFragment : Fragment() {
@@ -29,9 +27,8 @@ class HomeFragment : Fragment() {
     var oldCpuTime: CpuTime? = null
     val handler = Handler(Looper.getMainLooper())
     var timestamp = 0
-    val stepValue = 1
-    private val secondMills = 1000
-    val TIME_GAP: Long = (stepValue * secondMills).toLong()
+    val stepValueSec = 1
+    val updatePeriod: Long = (stepValueSec * 1000).toLong()   // milli-seconds
 
 
     override fun onCreateView(
@@ -79,9 +76,10 @@ class HomeFragment : Fragment() {
         handler.removeCallbacks(runnable)
     }
 
+
     private val runnable = object : Runnable {
         override fun run() {
-            val bufferedReader = getReader()
+            val bufferedReader = BufferedReader(InputStreamReader(FileInputStream("/proc/stat")))
             val cpuTime = getCpuTime(bufferedReader.readLine())
             bufferedReader.close()
 
@@ -89,7 +87,7 @@ class HomeFragment : Fragment() {
                 val deltaIdleTime = cpuTime.idleTime - oldCpuTime!!.idleTime
                 val deltaTotalTime = cpuTime.totalTime - oldCpuTime!!.totalTime
                 val cpuLoad = ((1.0 - deltaIdleTime.toDouble() / deltaTotalTime) * 100.0)
-                timestamp += stepValue
+                timestamp += stepValueSec
 
 //                update Graph UI
                 series.appendData(DataPoint(timestamp.toDouble(), cpuLoad), false, 20)
@@ -99,7 +97,7 @@ class HomeFragment : Fragment() {
 
             oldCpuTime = cpuTime
             handler.removeCallbacks(this)
-            handler.postDelayed(this, TIME_GAP)
+            handler.postDelayed(this, updatePeriod)
         }
     }
 
@@ -131,13 +129,6 @@ class HomeFragment : Fragment() {
     // stores time values for CPU
     data class CpuTime(val idleTime: Long, val totalTime: Long)
 
-    fun getReader(): BufferedReader {
-        return BufferedReader(InputStreamReader(readInputStream()))
-    }
-
-    private fun readInputStream(): InputStream? {
-        return FileInputStream("/proc/stat")
-    }
 
 
 }
